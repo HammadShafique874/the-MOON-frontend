@@ -45,23 +45,6 @@ export default function Topbar({
         />
       </label>
 
-      <button
-        type="button"
-        className="icon-button"
-        aria-label="Notifications"
-        title="Notifications"
-      >
-        <Bell size={21} />
-      </button>
-
-      <button
-        type="button"
-        className="icon-button"
-        aria-label="User profile"
-        title="User profile"
-      >
-        <UserCircle size={25} />
-      </button>
     </header>
   );
 }
