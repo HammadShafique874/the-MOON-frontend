@@ -1,7 +1,6 @@
 
 const env = import.meta.env
 
-
 export const USE_MOCK: boolean = env.VITE_USE_MOCK_DATA !== 'false'
 
 export const API_BASE_URL: string = String(env.VITE_API_BASE_URL || '')
