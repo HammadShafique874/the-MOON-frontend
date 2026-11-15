@@ -1,10 +1,36 @@
 
-export type SourceType = 'dataset' | 'research_paper' | 'technical_report' | 'webpage'
-export type AccessStatus = 'accessible' | 'restricted' | 'unavailable' | 'unknown'
-export type VerificationStatus = 'metadata_verified' | 'content_verified' | 'unverified'
-export type IngestionStatus = 'not_ingested' | 'ingested' | 'partially_ingested' | 'failed'
-export type ComparisonStatus = 'success' | 'partial' | 'not_comparable'
-export type EvidenceStatus = 'supported' | 'partially_supported' | 'insufficient_evidence'
+export type SourceType =
+  | 'dataset'
+  | 'research_paper'
+  | 'technical_report'
+  | 'webpage'
+
+export type AccessStatus =
+  | 'accessible'
+  | 'restricted'
+  | 'unavailable'
+  | 'unknown'
+
+export type VerificationStatus =
+  | 'metadata_verified'
+  | 'content_verified'
+  | 'unverified'
+
+export type IngestionStatus =
+  | 'not_ingested'
+  | 'ingested'
+  | 'partially_ingested'
+  | 'failed'
+
+export type ComparisonStatus =
+  | 'success'
+  | 'partial'
+  | 'not_comparable'
+
+export type EvidenceStatus =
+  | 'supported'
+  | 'partially_supported'
+  | 'insufficient_evidence'
 
 export type ExperimentDataStatus = string
 export type MeasurementStatus = string
@@ -13,6 +39,8 @@ export type AnalysisType = string
 export type InsightConfidence = string
 export type CvProcessingStatus = string
 export type CvCalibrationStatus = string
+
+// Experiments
 
 export interface Experiment {
   experiment_id: string
@@ -27,6 +55,8 @@ export interface Experiment {
   limitations: string[]
   last_updated: string
 }
+
+// Measurements
 
 export interface MeasurementConditions {
   fuel: string | null
@@ -48,6 +78,8 @@ export interface Measurement {
   notes: string[]
 }
 
+// Sources
+
 export interface Source {
   source_id: string
   title: string
@@ -60,6 +92,8 @@ export interface Source {
   ingestion_status: IngestionStatus
   publication_date: string | null
 }
+
+// Analysis
 
 export interface AnalysisMetric {
   metric: string
@@ -85,6 +119,8 @@ export interface AnalysisResult {
   limitations: string[]
 }
 
+// Comparison
+
 export interface ComparedVariable {
   variable: string
   unit: string
@@ -102,9 +138,11 @@ export interface Comparison {
   source_ids: string[]
 }
 
+// Insights
+
 export interface SupportingEvidence {
   source_id: string
-  experiment_id: string
+  experiment_id: string | null
   evidence_text: string
   url: string | null
 }
@@ -119,6 +157,8 @@ export interface Insight {
   confidence: InsightConfidence
   evidence_status: EvidenceStatus
 }
+
+// Computer Vision
 
 export interface CvFeatures {
   area_pixels: number
@@ -140,20 +180,33 @@ export interface CvResult {
   source_ids: string[]
 }
 
-export interface ApiSuccess<T> {
-  success: true
-  data: T
-  message: string
-}
+// API Response Envelope
 
 export interface ApiFailure {
-  success: false
-  data: null
+  code?: string
   message: string
+  details?: Record<string, unknown>[] | null
+}
+
+export interface ApiMeta {
+  schema_version?: string
+  data_mode?: 'mock' | 'psi' | null
+}
+
+export interface ApiEnvelope<T> {
+  success: boolean
+  data: T | null
+
+  // Full backend response
+  error?: ApiFailure | null
+  meta?: ApiMeta
+
+  // Legacy FastAPI RAG response
+  message?: string
   error_code?: string
 }
 
-export type ApiEnvelope<T> = ApiSuccess<T> | ApiFailure
+// API Requests
 
 export interface ComparisonRequest {
   experiment_ids: string[]
@@ -162,13 +215,16 @@ export interface ComparisonRequest {
 
 export interface AskRequest {
   question: string
-  experiment_ids: string[]
+  experiment_ids?: string[]
+  validated_findings?: Record<string, unknown>[]
+  top_k?: number
 }
 
 export interface InsightRequest {
-  experiment_id: string
-  analysis_id: string
   question: string
+  experiment_ids?: string[]
+  experiment_id?: string
+  analysis_id?: string
 }
 
 export interface AnalysisRequest {
@@ -180,5 +236,7 @@ export interface VisionRequest {
   experiment_id: string
   media_id?: string
 }
+
+// Health
 
 export type HealthData = Record<string, unknown> | null

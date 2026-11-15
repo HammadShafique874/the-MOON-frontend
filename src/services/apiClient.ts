@@ -1,64 +1,224 @@
-import { API_BASE_URL, MOCK_LATENCY_MS, REQUEST_TIMEOUT_MS, USE_MOCK } from '../config/env'
+
+import {
+  API_BASE_URL,
+  MOCK_LATENCY_MS,
+  REQUEST_TIMEOUT_MS,
+  USE_MOCK,
+} from '../config/env'
+
 import { mockRoute } from '../data/mock/mockBackend'
-import type { ApiEnvelope } from '../types/schemas'
+
+import type {
+  ApiEnvelope,
+} from '../types/schemas'
+
+// --------------------------------------------------
+// API ERROR
+// --------------------------------------------------
 
 export class ApiError extends Error {
   errorCode?: string
   status?: number
-  constructor(message: string, options: { errorCode?: string; status?: number } = {}) {
+
+  constructor(
+    message: string,
+    options: {
+      errorCode?: string
+      status?: number
+    } = {},
+  ) {
     super(message)
+
     this.name = 'ApiError'
     this.errorCode = options.errorCode
     this.status = options.status
+
+    Object.setPrototypeOf(this, ApiError.prototype)
   }
 }
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+// --------------------------------------------------
+// HELPERS
+// --------------------------------------------------
 
-function isEnvelope(value: any): value is ApiEnvelope<unknown> {
-  return value !== null && typeof value === 'object' && typeof value.success === 'boolean' && 'data' in value
+const sleep = (ms: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, ms))
+
+function createAbortError(): DOMException {
+  return new DOMException(
+    'Request was aborted.',
+    'AbortError',
+  )
 }
 
-async function realRequest(method: string, path: string, body: unknown, signal?: AbortSignal) {
+function isEnvelope(
+  value: unknown,
+): value is ApiEnvelope<unknown> {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+
+  const envelope = value as Record<string, unknown>
+
+  return (
+    typeof envelope.success === 'boolean' &&
+    'data' in envelope
+  )
+}
+
+// --------------------------------------------------
+// REAL API REQUEST
+// --------------------------------------------------
+
+async function realRequest(
+  method: 'GET' | 'POST',
+  path: string,
+  body?: unknown,
+  signal?: AbortSignal,
+): Promise<{
+  envelope: ApiEnvelope<unknown>
+  status: number
+}> {
   if (!API_BASE_URL) {
-    throw new ApiError('VITE_API_BASE_URL is not configured. Set it in .env.local or enable mock data.')
+    throw new ApiError(
+      'VITE_API_BASE_URL is not configured. Check your .env.local file.',
+    )
+  }
+
+  if (signal?.aborted) {
+    throw createAbortError()
   }
 
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
-  signal?.addEventListener('abort', () => controller.abort())
+
+  const abortRequest = () => controller.abort()
+
+  signal?.addEventListener('abort', abortRequest, {
+    once: true,
+  })
+
+  const timeout = setTimeout(() => {
+    controller.abort()
+  }, REQUEST_TIMEOUT_MS)
 
   try {
-    const response = await fetch(`${API_BASE_URL}${path}`, {
-      method,
-      headers: {
-        Accept: 'application/json',
-        ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
-      },
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-      signal: controller.signal,
-    })
+    const response = await fetch(
+      `${API_BASE_URL}${path}`,
+      {
+        method,
 
-    let json: unknown = null
+        headers: {
+          Accept: 'application/json',
+
+          ...(body !== undefined
+            ? {
+                'Content-Type': 'application/json',
+              }
+            : {}),
+        },
+
+        body:
+          body !== undefined
+            ? JSON.stringify(body)
+            : undefined,
+
+        signal: controller.signal,
+      },
+    )
+
+    let json: unknown
+
     try {
       json = await response.json()
     } catch {
+      json = null
     }
 
-    if (isEnvelope(json)) return { envelope: json, status: response.status }
-    if (!response.ok) throw new ApiError(`API request failed (${response.status}).`, { status: response.status })
-    throw new ApiError('The API response did not use the standard envelope.', { status: response.status })
-  } catch (error: any) {
-    if (error instanceof ApiError) throw error
-    if (error?.name === 'AbortError') {
-      if (signal?.aborted) throw error
-      throw new ApiError('The API request timed out.')
+    if (!isEnvelope(json)) {
+      if (!response.ok) {
+        throw new ApiError(
+          `API request failed (${response.status}).`,
+          {
+            status: response.status,
+          },
+        )
+      }
+
+      throw new ApiError(
+        'Invalid API response. Expected a standard response envelope.',
+        {
+          status: response.status,
+        },
+      )
     }
-    throw new ApiError('Could not reach the API. Check that the backend is running and VITE_API_BASE_URL is correct.')
+
+    return {
+      envelope: json,
+      status: response.status,
+    }
+  } catch (error: unknown) {
+    if (error instanceof ApiError) {
+      throw error
+    }
+
+    if (
+      error instanceof Error &&
+      error.name === 'AbortError'
+    ) {
+      if (signal?.aborted) {
+        throw error
+      }
+
+      throw new ApiError(
+        'API request timed out. Please try again.',
+      )
+    }
+
+    throw new ApiError(
+      'Could not connect to the backend. Check that the server is running and the API URL is correct.',
+    )
   } finally {
     clearTimeout(timeout)
+
+    signal?.removeEventListener(
+      'abort',
+      abortRequest,
+    )
   }
 }
+
+// --------------------------------------------------
+// MOCK REQUEST
+// --------------------------------------------------
+
+async function mockRequest(
+  method: 'GET' | 'POST',
+  path: string,
+  body?: unknown,
+  signal?: AbortSignal,
+): Promise<ApiEnvelope<unknown>> {
+  if (signal?.aborted) {
+    throw createAbortError()
+  }
+
+  await sleep(MOCK_LATENCY_MS)
+
+  if (signal?.aborted) {
+    throw createAbortError()
+  }
+
+  try {
+    return mockRoute(method, path, body)
+  } catch {
+    throw new ApiError(
+      'Mock API request failed. Check mockBackend configuration.',
+    )
+  }
+}
+
+// --------------------------------------------------
+// MAIN API FUNCTION
+// --------------------------------------------------
 
 export async function callApi<T>(
   method: 'GET' | 'POST',
@@ -66,23 +226,64 @@ export async function callApi<T>(
   body?: unknown,
   signal?: AbortSignal,
 ): Promise<T> {
+  if (signal?.aborted) {
+    throw createAbortError()
+  }
+
   let envelope: ApiEnvelope<unknown>
   let status: number | undefined
 
+  // MOCK MODE
+
   if (USE_MOCK) {
-    await sleep(MOCK_LATENCY_MS)
-    envelope = mockRoute(method, path, body)
-  } else {
-    const result = await realRequest(method, path, body, signal)
+    envelope = await mockRequest(
+      method,
+      path,
+      body,
+      signal,
+    )
+  }
+
+  // REAL BACKEND MODE
+
+  else {
+    const result = await realRequest(
+      method,
+      path,
+      body,
+      signal,
+    )
+
     envelope = result.envelope
     status = result.status
   }
 
+  // ERROR HANDLING
+  // Supports both:
+  // Full API: error.message / error.code
+  // RAG API: message / error_code
+
   if (!envelope.success) {
-    throw new ApiError(envelope.message || 'The API reported an error.', {
-      errorCode: envelope.error_code,
+    const message =
+      envelope.error?.message ||
+      envelope.message ||
+      'The API reported an error.'
+
+    const errorCode =
+      envelope.error?.code ||
+      envelope.error_code
+
+    throw new ApiError(message, {
+      errorCode,
       status,
     })
   }
+
+  // SUCCESS RESPONSE
+
+  if (envelope.data === null) {
+    return null as T
+  }
+
   return envelope.data as T
 }
