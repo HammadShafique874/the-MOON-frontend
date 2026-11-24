@@ -1,7 +1,67 @@
-# THE MOON — Frontend
+# 🌙 THE MOON — Flame in Freefall
 
-React + Vite + TypeScript-friendly frontend for **THE MOON – Flame in Freefall** (NASA Space Apps Challenge 2026).
-Implements the canonical schemas (Section 4) and API contract (Section 5) of the integration document, v1.0.
+**AI-Powered Fire Safety Insights from Microgravity Combustion Data**
+
+## 📌 Project Overview
+
+THE MOON is a NASA Hackathon project focused on understanding fire behavior in microgravity environments. The project aims to make combustion experiment data easier to explore, compare, and understand through an interactive dashboard.
+
+It provides a user-friendly interface for exploring experimental data, comparing combustion experiments, viewing insights, and understanding data quality.
+
+## 🎯 Project Objectives
+
+- Explore fire behavior in microgravity environments.
+- Visualize combustion experiment data.
+- Compare different experiments and their results.
+- Present AI-driven insights in an accessible dashboard.
+- Make scientific data easier to understand through interactive visualizations.
+
+## ✨ Key Features
+
+- **Overview Dashboard:** A summary of experiment data and key information.
+- **Experiment Explorer:** Browse and explore individual experiments.
+- **Experiment Comparison:** Compare multiple experiments and their measurements.
+- **AI Insights:** Dedicated interface for presenting AI-powered insights.
+- **Data Quality:** Explore data quality and validation information.
+- **Experiment Details:** View detailed information about individual experiments.
+- **Settings:** Manage dashboard preferences.
+
+## 🛠️ Technology Stack
+
+- React.js
+- JavaScript
+- Vite
+- Recharts
+- Lucide React
+- CSS
+
+## 👨‍💻 My Role — Frontend Developer
+
+I was responsible for the frontend development of this project.
+
+My contributions included:
+
+- Designed and developed the interactive dashboard interface.
+- Built reusable React components.
+- Implemented responsive layouts for different screen sizes.
+- Developed dashboard pages including Overview, Explorer, Comparison, AI Insights, Data Quality, Details, and Settings.
+- Integrated charts and data visualizations using Recharts.
+- Implemented experiment selection and comparison interfaces.
+- Organized the frontend architecture to support future backend and API integration.
+
+## 🚀 Project Status
+
+Frontend development completed. The project interface currently uses mock data and is structured to support backend and AI/RAG integration.
+
+## 🏆 Hackathon
+
+Developed as part of a NASA-themed hackathon project focused on **Fire in Microgravity**.
+
+---
+
+**Developed by:** Hammad Shafique  
+**Role:** Frontend Developer  
+**GitHub:** [HammadShafique874](https://github.com/HammadShafique874)
 
 ## Requirements
 - Node.js 20.19+ or 22.12+
